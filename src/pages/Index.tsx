@@ -7,12 +7,14 @@ import PreviewPanel from '../components/PreviewPanel';
 import Chat from '../components/Chat';
 import { DocumentFile, FeatureType, ChatMessage } from '../lib/types';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { generateDocumentResponse } from '../lib/document-service';
 
 const Index = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('ocr');
   const [document, setDocument] = useState<DocumentFile | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showPreview, setShowPreview] = useState<boolean>(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Reset chat when a new document is uploaded
   useEffect(() => {
@@ -20,20 +22,20 @@ const Index = () => {
       setMessages([
         {
           id: '1',
-          content: `I've analyzed your document "${document.name}". What would you like to know about it?`,
+          content: `I've analyzed your document "${document.name}" using Google ${activeFeature.toUpperCase()}. What would you like to know about it?`,
           role: 'ai',
           timestamp: new Date()
         }
       ]);
       setShowPreview(true);
     }
-  }, [document]);
+  }, [document, activeFeature]);
 
   const handleUploadComplete = (uploadedDocument: DocumentFile) => {
     setDocument(uploadedDocument);
   };
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -43,30 +45,47 @@ const Index = () => {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    setIsProcessing(true);
     
-    // Simulate AI response after a short delay
-    setTimeout(() => {
-      const aiResponses = [
-        "I've found that information in the document. The key details are on page 1.",
-        "Based on the document analysis, there are 3 main sections with relevant data.",
-        "The document appears to be an invoice with payment details and line items.",
-        "I've extracted the dates from the document. The main date is January 15, 2023.",
-        "This looks like a contract document with signature fields and legal clauses.",
-      ];
+    try {
+      // Generate AI response
+      const response = await generateDocumentResponse(content, document);
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: aiResponses[Math.floor(Math.random() * aiResponses.length)],
+        content: response,
         role: 'ai',
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: "Sorry, I encountered an error processing your request. Please try again.",
+        role: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleNewChat = () => {
-    setMessages([]);
+    if (document) {
+      setMessages([
+        {
+          id: Date.now().toString(),
+          content: `Starting a new conversation about "${document.name}". What would you like to know?`,
+          role: 'ai',
+          timestamp: new Date()
+        }
+      ]);
+    } else {
+      setMessages([]);
+    }
   };
 
   return (
@@ -101,6 +120,7 @@ const Index = () => {
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 onNewChat={handleNewChat}
+                isProcessing={isProcessing}
               />
             </div>
           </ResizablePanel>

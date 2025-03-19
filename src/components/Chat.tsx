@@ -1,15 +1,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, Bot } from 'lucide-react';
+import { Send, Plus, Bot, Loader2 } from 'lucide-react';
 import { ChatMessage } from '../lib/types';
 
 interface ChatProps {
   messages: ChatMessage[];
   onSendMessage: (content: string) => void;
   onNewChat: () => void;
+  isProcessing?: boolean;
 }
 
-const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
+const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat, isProcessing = false }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -24,7 +25,7 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim()) {
+    if (input.trim() && !isProcessing) {
       onSendMessage(input);
       setInput('');
     }
@@ -37,7 +38,7 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
           <div className="h-8 w-8 bg-docai-blue rounded-full flex items-center justify-center">
             <Bot className="h-4 w-4 text-white" />
           </div>
-          <h3 className="text-sm font-medium text-docai-black">Document AI Assistant</h3>
+          <h3 className="text-sm font-medium text-docai-black">Google Document AI</h3>
         </div>
         <button 
           onClick={onNewChat}
@@ -51,21 +52,22 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-4">
             <Bot className="h-10 w-10 text-docai-darkGray mb-4 opacity-50" />
-            <h3 className="text-sm font-medium text-docai-black mb-2">How can I help you today?</h3>
+            <h3 className="text-sm font-medium text-docai-black mb-2">How can I help with your document?</h3>
             <p className="text-xs text-docai-darkGray mb-4">
-              I can answer questions about your documents, help extract information, or explain document content.
+              Upload a document to analyze it with Google's Vision AI technology
             </p>
             <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
               {[
                 "Summarize this document",
-                "Extract contact information",
-                "Find all dates in this document",
-                "What is this document about?"
+                "Extract key information",
+                "What data points are in this document?",
+                "What is the confidence level of analysis?"
               ].map((suggestion, index) => (
                 <button 
                   key={index}
                   onClick={() => onSendMessage(suggestion)}
                   className="text-xs text-left px-3 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-300 border border-gray-200"
+                  disabled={isProcessing}
                 >
                   {suggestion}
                 </button>
@@ -85,6 +87,12 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
                 </p>
               </div>
             ))}
+            {isProcessing && (
+              <div className="chat-bubble chat-bubble-ai flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <p className="text-sm">Analyzing document...</p>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -95,15 +103,20 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask something about your document..."
+          placeholder="Ask about your document..."
           className="w-full px-4 py-3 pr-12 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-docai-blue transition-all duration-300 text-sm"
+          disabled={isProcessing}
         />
         <button 
           type="submit"
           className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-docai-blue text-white disabled:opacity-50"
-          disabled={!input.trim()}
+          disabled={!input.trim() || isProcessing}
         >
-          <Send className="h-4 w-4" />
+          {isProcessing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </button>
       </form>
     </div>

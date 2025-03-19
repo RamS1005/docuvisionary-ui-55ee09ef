@@ -18,6 +18,8 @@ export interface ProcessingResult {
   entities?: Entity[];
   summary?: string;
   confidence: number;
+  source?: string;
+  error?: string;
 }
 
 export interface Entity {

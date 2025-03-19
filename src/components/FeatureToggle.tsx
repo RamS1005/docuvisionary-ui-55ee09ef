@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Eye, FileSearch } from 'lucide-react';
+import { FileSearch, Eye } from 'lucide-react';
 import { FeatureType } from '../lib/types';
 
 interface FeatureToggleProps {
@@ -22,7 +22,7 @@ const FeatureToggle: React.FC<FeatureToggleProps> = ({ activeFeature, onChange }
           }`}
         >
           <FileSearch className="h-4 w-4" />
-          <span className="font-medium">OCR</span>
+          <span className="font-medium">Google OCR</span>
         </button>
         
         <button
@@ -34,7 +34,7 @@ const FeatureToggle: React.FC<FeatureToggleProps> = ({ activeFeature, onChange }
           }`}
         >
           <Eye className="h-4 w-4" />
-          <span className="font-medium">Vision</span>
+          <span className="font-medium">Google Vision</span>
         </button>
       </div>
     </div>
