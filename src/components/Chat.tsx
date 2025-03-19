@@ -31,8 +31,8 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full h-full flex flex-col p-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 bg-docai-blue rounded-full flex items-center justify-center">
             <Bot className="h-4 w-4 text-white" />
@@ -41,16 +41,16 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
         </div>
         <button 
           onClick={onNewChat}
-          className="h-8 w-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors duration-300"
+          className="h-7 w-7 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors duration-300 border border-gray-200"
         >
           <Plus className="h-4 w-4 text-docai-darkGray" />
         </button>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-2 bg-white/50 rounded-lg mb-4 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto p-2 bg-gray-50 rounded-lg mb-3 hide-scrollbar">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-4">
-            <Bot className="h-12 w-12 text-docai-darkGray mb-4 opacity-50" />
+            <Bot className="h-10 w-10 text-docai-darkGray mb-4 opacity-50" />
             <h3 className="text-sm font-medium text-docai-black mb-2">How can I help you today?</h3>
             <p className="text-xs text-docai-darkGray mb-4">
               I can answer questions about your documents, help extract information, or explain document content.
@@ -65,7 +65,7 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
                 <button 
                   key={index}
                   onClick={() => onSendMessage(suggestion)}
-                  className="text-xs text-left px-3 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-300"
+                  className="text-xs text-left px-3 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-300 border border-gray-200"
                 >
                   {suggestion}
                 </button>
@@ -96,7 +96,7 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask something about your document..."
-          className="w-full px-4 py-3 pr-12 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-docai-blue transition-all duration-300"
+          className="w-full px-4 py-3 pr-12 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-docai-blue transition-all duration-300 text-sm"
         />
         <button 
           type="submit"
