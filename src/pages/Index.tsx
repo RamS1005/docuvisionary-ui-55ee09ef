@@ -8,6 +8,7 @@ import Chat from '../components/Chat';
 import { DocumentFile, FeatureType, ChatMessage } from '../lib/types';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { generateDocumentResponse } from '../lib/document-service';
+import { toast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('ocr');
@@ -15,21 +16,32 @@ const Index = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showPreview, setShowPreview] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [documentReady, setDocumentReady] = useState(false);
 
   // Reset chat when a new document is uploaded
   useEffect(() => {
-    if (document) {
+    if (document && document.processed) {
       setMessages([
         {
           id: '1',
-          content: `I've analyzed your document "${document.name}" using Google ${activeFeature.toUpperCase()}. What would you like to know about it?`,
+          content: `I've analyzed your document "${document.name}" using Google's AI services. What would you like to know about it?`,
           role: 'ai',
           timestamp: new Date()
         }
       ]);
       setShowPreview(true);
+      setDocumentReady(true);
+      
+      // Show a toast notification
+      toast({
+        title: "Document Processed",
+        description: "Your document is now ready for analysis!",
+        duration: 3000,
+      });
+    } else {
+      setDocumentReady(false);
     }
-  }, [document, activeFeature]);
+  }, [document]);
 
   const handleUploadComplete = (uploadedDocument: DocumentFile) => {
     setDocument(uploadedDocument);
@@ -68,6 +80,13 @@ const Index = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
+      
+      toast({
+        title: "Error",
+        description: "Failed to generate a response. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -121,6 +140,7 @@ const Index = () => {
                 onSendMessage={handleSendMessage}
                 onNewChat={handleNewChat}
                 isProcessing={isProcessing}
+                documentReady={documentReady}
               />
             </div>
           </ResizablePanel>

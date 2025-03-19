@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, Bot, Loader2 } from 'lucide-react';
+import { Send, Plus, Bot, Loader2, FileText, CheckCircle } from 'lucide-react';
 import { ChatMessage } from '../lib/types';
 
 interface ChatProps {
@@ -8,9 +8,16 @@ interface ChatProps {
   onSendMessage: (content: string) => void;
   onNewChat: () => void;
   isProcessing?: boolean;
+  documentReady?: boolean;
 }
 
-const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat, isProcessing = false }) => {
+const Chat: React.FC<ChatProps> = ({ 
+  messages, 
+  onSendMessage, 
+  onNewChat, 
+  isProcessing = false,
+  documentReady = false
+}) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +46,12 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat, isProce
             <Bot className="h-4 w-4 text-white" />
           </div>
           <h3 className="text-sm font-medium text-docai-black">Google Document AI</h3>
+          {documentReady && (
+            <div className="flex items-center gap-1 text-green-600 text-xs bg-green-50 px-2 py-0.5 rounded-full">
+              <CheckCircle className="h-3 w-3" />
+              <span>Document Ready</span>
+            </div>
+          )}
         </div>
         <button 
           onClick={onNewChat}
@@ -54,20 +67,26 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat, isProce
             <Bot className="h-10 w-10 text-docai-darkGray mb-4 opacity-50" />
             <h3 className="text-sm font-medium text-docai-black mb-2">How can I help with your document?</h3>
             <p className="text-xs text-docai-darkGray mb-4">
-              Upload a document to analyze it with Google's Vision AI technology
+              {documentReady 
+                ? "Your document is ready. What would you like to know about it?" 
+                : "Upload a document to analyze it with Google's Vision AI technology"}
             </p>
             <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
               {[
                 "Summarize this document",
                 "Extract key information",
-                "What data points are in this document?",
+                "List objects and their prices",
                 "What is the confidence level of analysis?"
               ].map((suggestion, index) => (
                 <button 
                   key={index}
                   onClick={() => onSendMessage(suggestion)}
-                  className="text-xs text-left px-3 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors duration-300 border border-gray-200"
-                  disabled={isProcessing}
+                  className={`text-xs text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-300 border ${
+                    documentReady 
+                      ? "bg-white border-gray-200 text-docai-black" 
+                      : "bg-gray-100 border-gray-200 text-docai-darkGray cursor-not-allowed"
+                  }`}
+                  disabled={!documentReady || isProcessing}
                 >
                   {suggestion}
                 </button>
@@ -103,14 +122,14 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onNewChat, isProce
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your document..."
+          placeholder={documentReady ? "Ask about your document..." : "Upload a document to start chatting..."}
           className="w-full px-4 py-3 pr-12 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-docai-blue transition-all duration-300 text-sm"
-          disabled={isProcessing}
+          disabled={isProcessing || !documentReady}
         />
         <button 
           type="submit"
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-docai-blue text-white disabled:opacity-50"
-          disabled={!input.trim() || isProcessing}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-docai-blue text-white disabled:opacity-50 disabled:bg-gray-300"
+          disabled={!input.trim() || isProcessing || !documentReady}
         >
           {isProcessing ? (
             <Loader2 className="h-4 w-4 animate-spin" />

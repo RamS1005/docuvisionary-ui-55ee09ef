@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { File, FileText, Eye, Download, X, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { File, FileText, Eye, Download, X, ArrowLeft, EyeOff, FileX } from 'lucide-react';
 import { DocumentFile } from '../lib/types';
 
 interface PreviewPanelProps {
@@ -10,6 +10,19 @@ interface PreviewPanelProps {
 
 const PreviewPanel: React.FC<PreviewPanelProps> = ({ document, onClose }) => {
   const [activeTab, setActiveTab] = useState<'preview' | 'extracted'>('preview');
+  const [previewError, setPreviewError] = useState(false);
+
+  useEffect(() => {
+    // Reset preview error state when document changes
+    if (document) {
+      setPreviewError(false);
+    }
+  }, [document]);
+
+  const handleImageError = () => {
+    console.error("Error loading document preview image");
+    setPreviewError(true);
+  };
 
   if (!document) {
     return (
@@ -77,18 +90,33 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ document, onClose }) => {
       
       <div className="flex-1 overflow-hidden animate-fade-in">
         {activeTab === 'preview' ? (
-          <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
-            {document.type.startsWith('image/') ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-4">
+            {previewError ? (
+              <div className="flex flex-col items-center justify-center text-center">
+                <FileX className="h-16 w-16 text-rose-400 mb-4" />
+                <p className="text-sm text-docai-darkGray">Preview could not be loaded</p>
+                <p className="text-xs text-docai-darkGray mt-1">Document type: {document.type}</p>
+              </div>
+            ) : document.type.startsWith('image/') ? (
               <img 
                 src={document.url} 
                 alt={document.name} 
                 className="max-w-full max-h-full object-contain"
+                onError={handleImageError}
+              />
+            ) : document.preview ? (
+              <img 
+                src={document.preview} 
+                alt={document.name} 
+                className="max-w-full max-h-full object-contain"
+                onError={handleImageError}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center">
-                <File className="h-16 w-16 text-docai-darkGray mb-4" />
+              <div className="flex flex-col items-center justify-center text-center">
+                <EyeOff className="h-16 w-16 text-docai-darkGray mb-4" />
                 <p className="text-sm text-docai-darkGray">Preview not available</p>
                 <p className="text-xs text-docai-darkGray mt-1">Document type: {document.type}</p>
+                <p className="text-xs text-docai-blue mt-3">View extracted data instead</p>
               </div>
             )}
           </div>

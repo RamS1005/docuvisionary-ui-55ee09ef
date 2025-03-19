@@ -1,10 +1,91 @@
+
 import { DocumentFile, ProcessingResult, FeatureType } from './types';
+import { ImageAnnotatorClient } from '@google-cloud/vision';
+
+// Determine if we can use Google Vision API or if we should use mock data
+const useRealGoogleVision = false; // Set to true when API key is configured
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Function to initialize Google Vision client
+const initializeVisionClient = () => {
+  try {
+    // This requires proper API key configuration
+    return new ImageAnnotatorClient();
+  } catch (error) {
+    console.error("Failed to initialize Google Vision client:", error);
+    return null;
+  }
+};
+
+// Process document with actual Google Vision API
+const processWithRealGoogleVision = async (file: File, feature: FeatureType): Promise<ProcessingResult> => {
+  console.log(`Processing ${file.name} with actual Google Vision API (${feature} mode)`);
+  
+  try {
+    const visionClient = initializeVisionClient();
+    
+    if (!visionClient) {
+      throw new Error("Google Vision client not initialized");
+    }
+    
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Determine which features to request based on feature type
+    if (feature === 'ocr') {
+      const [result] = await visionClient.textDetection(buffer);
+      const detections = result.textAnnotations || [];
+      const fullText = detections.length > 0 ? detections[0].description : "";
+      
+      // Extract potential entities
+      const entities = [];
+      if (detections.length > 1) {
+        for (let i = 1; i < Math.min(10, detections.length); i++) {
+          if (detections[i].description) {
+            entities.push({
+              text: detections[i].description,
+              type: 'text',
+              confidence: detections[i].confidence || 0.8
+            });
+          }
+        }
+      }
+      
+      return {
+        text: fullText,
+        entities,
+        confidence: 0.9,
+        source: "google-vision-api"
+      };
+    } else {
+      // Vision mode - analyze image properties, labels, etc.
+      const [labelResults] = await visionClient.labelDetection(buffer);
+      const labels = labelResults.labelAnnotations || [];
+      
+      const entities = labels.map(label => ({
+        text: label.description || 'Unknown',
+        type: 'label',
+        confidence: label.score || 0.7
+      }));
+      
+      return {
+        text: "Visual analysis complete. Here's what I found in your document:",
+        entities,
+        summary: `Document contains ${entities.length} identified elements.`,
+        confidence: 0.85,
+        source: "google-vision-api"
+      };
+    }
+  } catch (error) {
+    console.error("Error with real Google Vision processing:", error);
+    throw error;
+  }
+};
+
 // Mock Google Vision API for demonstration purposes
-// In a real app, you would use the @google-cloud/vision client properly
-const processWithGoogleVision = async (file: File, feature: FeatureType): Promise<ProcessingResult> => {
+const processWithMockGoogleVision = async (file: File, feature: FeatureType): Promise<ProcessingResult> => {
   console.log(`Processing ${file.name} with Google Vision API (${feature} mode)`);
   
   // Simulate API call delay
@@ -20,7 +101,7 @@ const processWithGoogleVision = async (file: File, feature: FeatureType): Promis
         { text: "Growth Projection: 12%", type: "forecast", confidence: 0.88 }
       ],
       confidence: 0.94,
-      source: "google-vision"
+      source: "google-vision-mock"
     };
   } else {
     return {
@@ -33,7 +114,7 @@ const processWithGoogleVision = async (file: File, feature: FeatureType): Promis
       ],
       summary: "Financial report with 3 data visualizations, company branding, and signed authorization from the CFO.",
       confidence: 0.91,
-      source: "google-vision"
+      source: "google-vision-mock"
     };
   }
 };
@@ -48,6 +129,14 @@ export const processDocument = async (
   // Create object URL for the file preview
   const url = URL.createObjectURL(file);
   
+  // Create a preview for the document
+  let preview = null;
+  try {
+    preview = await getFilePreview(file);
+  } catch (error) {
+    console.error("Failed to generate preview:", error);
+  }
+  
   // Create a document object
   const document: DocumentFile = {
     id,
@@ -55,13 +144,17 @@ export const processDocument = async (
     type: file.type,
     size: file.size,
     url,
+    preview,
     uploadedAt: new Date(),
     processed: false,
   };
   
-  // Process with Google Vision API (mock)
+  // Process with Google Vision API
   try {
-    const processingResult = await processWithGoogleVision(file, feature);
+    const processingResult = useRealGoogleVision 
+      ? await processWithRealGoogleVision(file, feature)
+      : await processWithMockGoogleVision(file, feature);
+      
     document.processed = true;
     document.processingResult = processingResult;
   } catch (error) {
@@ -78,33 +171,16 @@ export const processDocument = async (
   return document;
 };
 
-const generateOcrResult = (): ProcessingResult => {
-  return {
-    text: "This is a sample document text extracted using OCR. The system has identified key information including invoice details, dates, and amounts.",
-    entities: [
-      { text: "Invoice #12345", type: "invoice_number", confidence: 0.95 },
-      { text: "01/15/2023", type: "date", confidence: 0.92 },
-      { text: "$1,250.00", type: "amount", confidence: 0.97 }
-    ],
-    confidence: 0.94
-  };
-};
-
-const generateVisionResult = (): ProcessingResult => {
-  return {
-    text: "The document contains an image of a business contract with signatures and a company logo.",
-    entities: [
-      { text: "Company Logo", type: "logo", confidence: 0.88 },
-      { text: "Signature", type: "signature", confidence: 0.85 },
-      { text: "Contract Title", type: "title", confidence: 0.93 }
-    ],
-    summary: "Business contract document with official signatures and company branding elements.",
-    confidence: 0.89
-  };
-};
-
 export const getFilePreview = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
+    // Check if file is PDF
+    if (file.type === 'application/pdf') {
+      // For PDF files, we would normally generate a thumbnail
+      // For now, return a placeholder
+      resolve('/placeholder.svg');
+      return;
+    }
+    
     if (!file.type.startsWith('image/')) {
       // For non-image files, return a generic preview
       resolve('/placeholder.svg');
@@ -124,7 +200,7 @@ export const getFilePreview = (file: File): Promise<string> => {
   });
 };
 
-// New function to generate AI responses to document queries
+// Enhanced AI response generation with more document awareness
 export const generateDocumentResponse = async (
   message: string,
   document: DocumentFile | null
@@ -142,6 +218,7 @@ export const generateDocumentResponse = async (
   const docContent = document.processingResult.text || "";
   const docSummary = document.processingResult.summary || "";
   const entities = document.processingResult.entities || [];
+  const source = document.processingResult.source || "unknown";
   
   // Query categorization (very simple for demo)
   if (message.toLowerCase().includes("summary") || message.toLowerCase().includes("about")) {
@@ -157,9 +234,27 @@ export const generateDocumentResponse = async (
   
   if (message.toLowerCase().includes("confidence") || message.toLowerCase().includes("accuracy")) {
     return `My overall confidence in the analysis of this document is ${Math.round((document.processingResult.confidence || 0) * 100)}%. ${
-      document.processingResult.source === "google-vision" ? 
+      source.includes("google-vision") ? 
       "This analysis was performed using Google's Vision AI." : 
       "The document was analyzed using our standard processing engine."}`;
+  }
+  
+  if (message.toLowerCase().includes("list") && 
+      (message.toLowerCase().includes("object") || message.toLowerCase().includes("price"))) {
+    const priceRelatedEntities = entities.filter(e => 
+      e.text.includes("$") || 
+      e.text.toLowerCase().includes("price") || 
+      e.text.toLowerCase().includes("cost") ||
+      e.type.toLowerCase().includes("price") ||
+      e.type.toLowerCase().includes("financial")
+    );
+    
+    if (priceRelatedEntities.length > 0) {
+      const priceList = priceRelatedEntities.map(e => `- ${e.text}`).join("\n");
+      return `I found the following pricing information in your document:\n\n${priceList}`;
+    } else {
+      return `I couldn't find any specific pricing information in this document. Would you like me to list all the entities I detected instead?`;
+    }
   }
   
   // Default response with document awareness

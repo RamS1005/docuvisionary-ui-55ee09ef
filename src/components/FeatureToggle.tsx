@@ -11,7 +11,7 @@ interface FeatureToggleProps {
 const FeatureToggle: React.FC<FeatureToggleProps> = ({ activeFeature, onChange }) => {
   return (
     <div className="flex flex-col gap-2 animate-fade-in">
-      <p className="text-xs font-medium text-docai-darkGray">Select Feature</p>
+      <p className="text-xs font-medium text-docai-darkGray">Google AI Service</p>
       <div className="flex gap-2">
         <button
           onClick={() => onChange('ocr')}
@@ -22,7 +22,7 @@ const FeatureToggle: React.FC<FeatureToggleProps> = ({ activeFeature, onChange }
           }`}
         >
           <FileSearch className="h-4 w-4" />
-          <span className="font-medium">Google OCR</span>
+          <span className="font-medium">Text Detection</span>
         </button>
         
         <button
@@ -34,7 +34,7 @@ const FeatureToggle: React.FC<FeatureToggleProps> = ({ activeFeature, onChange }
           }`}
         >
           <Eye className="h-4 w-4" />
-          <span className="font-medium">Google Vision</span>
+          <span className="font-medium">Image Analysis</span>
         </button>
       </div>
     </div>
