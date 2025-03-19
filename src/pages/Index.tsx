@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import FeatureToggle from '../components/FeatureToggle';
@@ -17,6 +16,26 @@ const Index = () => {
   const [showPreview, setShowPreview] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [documentReady, setDocumentReady] = useState(false);
+
+  // Check if environment variables are set properly on component mount
+  useEffect(() => {
+    const isApiKeySet = import.meta.env.VITE_GOOGLE_VISION_API_KEY && 
+                        import.meta.env.VITE_GOOGLE_VISION_API_KEY !== 'your_api_key_here';
+    
+    if (!isApiKeySet) {
+      toast({
+        title: "API Key Not Configured",
+        description: "Please add your Google Vision API key in the .env file to use real AI processing.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+    
+    const useRealVision = import.meta.env.VITE_USE_REAL_GOOGLE_VISION === 'true';
+    if (useRealVision && !isApiKeySet) {
+      console.warn("Real Vision API is enabled but API key is not set correctly");
+    }
+  }, []);
 
   // Reset chat when a new document is uploaded
   useEffect(() => {

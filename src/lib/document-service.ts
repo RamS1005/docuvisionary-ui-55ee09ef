@@ -3,15 +3,29 @@ import { DocumentFile, ProcessingResult, FeatureType } from './types';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 
 // Determine if we can use Google Vision API or if we should use mock data
-const useRealGoogleVision = false; // Set to true when API key is configured
+const useRealGoogleVision = import.meta.env.VITE_USE_REAL_GOOGLE_VISION === 'true';
+console.log('Using real Google Vision API:', useRealGoogleVision);
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Function to initialize Google Vision client
 const initializeVisionClient = () => {
   try {
-    // This requires proper API key configuration
-    return new ImageAnnotatorClient();
+    // Check if API key is set
+    const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+    if (!apiKey || apiKey === 'your_api_key_here') {
+      console.warn('Google Vision API key not set properly in .env file');
+      return null;
+    }
+    
+    // Set API key in credentials
+    const credentials = {
+      client_email: 'document-ai@example.com', // This would be from your Google Cloud service account
+      private_key: apiKey,
+    };
+    
+    // Configure the client with API key
+    return new ImageAnnotatorClient({ credentials });
   } catch (error) {
     console.error("Failed to initialize Google Vision client:", error);
     return null;
@@ -26,7 +40,7 @@ const processWithRealGoogleVision = async (file: File, feature: FeatureType): Pr
     const visionClient = initializeVisionClient();
     
     if (!visionClient) {
-      throw new Error("Google Vision client not initialized");
+      throw new Error("Google Vision client not initialized - please set your API key in .env file");
     }
     
     // Convert file to buffer
